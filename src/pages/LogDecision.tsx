@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { PenLine, Plus, X, Save, Sparkles } from "lucide-react";
+import { PenLine, Plus, X, Save, Sparkles, FileText, Bookmark } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
-import { saveDecision, createRemindersForDecision, Decision } from "@/lib/storage";
+import TemplateModal from "@/components/templates/TemplateModal";
+import SaveTemplateModal from "@/components/templates/SaveTemplateModal";
+import { saveDecision, createRemindersForDecision, Decision, saveDraft, getDraft, clearDraft } from "@/lib/storage";
 import { DecisionTemplate, DEFAULT_TEMPLATES } from "@/lib/templates";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [
@@ -30,6 +33,8 @@ const CATEGORIES = [
   "Lifestyle",
   "Other",
 ];
+
+const CONFIDENCE_EMOJIS = ["😟", "😕", "🤔", "😊", "😎"];
 
 const LogDecision = () => {
   const navigate = useNavigate();
@@ -46,21 +51,64 @@ const LogDecision = () => {
   const [context, setContext] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DecisionTemplate | null>(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+
+  // Debounced values for auto-save
+  const debouncedTitle = useDebounce(title, 1000);
+  const debouncedChoice = useDebounce(choice, 1000);
+  const debouncedContext = useDebounce(context, 1000);
+
+  // Load draft on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      const draft = await getDraft();
+      if (draft && !location.state?.template) {
+        setTitle(draft.title || "");
+        setChoice(draft.choice || "");
+        setAlternatives(draft.alternatives?.length ? draft.alternatives : [""]);
+        setCategory(draft.category || "");
+        setConfidence([draft.confidence || 70]);
+        setTags(draft.tags || []);
+        setContext(draft.context || "");
+      }
+    };
+    loadDraft();
+  }, [location.state]);
 
   // Load template from navigation state
   useEffect(() => {
     if (location.state?.template) {
       const template = location.state.template as DecisionTemplate;
-      setSelectedTemplate(template);
-      setTitle(template.titlePlaceholder);
-      setChoice(template.choicePlaceholder);
-      setAlternatives(template.alternativesPlaceholder.split("\n").filter(Boolean));
-      setCategory(template.category);
-      setTags(template.tags);
-      setContext(template.contextPlaceholder);
+      applyTemplate(template);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (debouncedTitle || debouncedChoice || debouncedContext) {
+      saveDraft({
+        title,
+        choice,
+        alternatives: alternatives.filter((a) => a.trim()),
+        category,
+        confidence: confidence[0],
+        tags,
+        context,
+      });
+    }
+  }, [debouncedTitle, debouncedChoice, debouncedContext, alternatives, category, confidence, tags]);
+
+  const applyTemplate = (template: DecisionTemplate) => {
+    setSelectedTemplate(template);
+    setTitle(template.titlePlaceholder);
+    setChoice(template.choicePlaceholder);
+    setAlternatives(template.alternativesPlaceholder.split("\n").filter(Boolean));
+    setCategory(template.category);
+    setTags(template.tags);
+    setContext(template.contextPlaceholder);
+  };
 
   const handleAddAlternative = () => {
     setAlternatives([...alternatives, ""]);
@@ -126,6 +174,7 @@ const LogDecision = () => {
 
       await saveDecision(decision);
       await createRemindersForDecision(decision);
+      await clearDraft();
 
       toast({
         title: "Decision logged! 🎉",
@@ -145,18 +194,30 @@ const LogDecision = () => {
     }
   };
 
+  const confidenceEmoji = CONFIDENCE_EMOJIS[Math.floor((confidence[0] - 1) / 25)] || CONFIDENCE_EMOJIS[2];
+
   return (
     <DashboardLayout>
       <div className="max-w-2xl mx-auto">
         <div className="glass-card rounded-2xl p-6 md:p-8">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
-              <PenLine className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
+                <PenLine className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Log a Decision</h1>
+                <p className="text-muted-foreground">Record your choice and let your twin learn</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">Log a Decision</h1>
-              <p className="text-muted-foreground">Record your choice and let your twin learn</p>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplateModal(true)}
+            >
+              <FileText className="w-4 h-4" />
+              Templates
+            </Button>
           </div>
 
           {/* Quick Templates */}
@@ -166,15 +227,7 @@ const LogDecision = () => {
               {DEFAULT_TEMPLATES.slice(0, 5).map((template) => (
                 <button
                   key={template.id}
-                  onClick={() => {
-                    setSelectedTemplate(template);
-                    setTitle(template.titlePlaceholder);
-                    setChoice(template.choicePlaceholder);
-                    setAlternatives(template.alternativesPlaceholder.split("\n").filter(Boolean));
-                    setCategory(template.category);
-                    setTags(template.tags);
-                    setContext(template.contextPlaceholder);
-                  }}
+                  onClick={() => applyTemplate(template)}
                   className={`px-3 py-2 rounded-lg text-sm transition-all ${
                     selectedTemplate?.id === template.id
                       ? "bg-primary text-primary-foreground"
@@ -267,15 +320,20 @@ const LogDecision = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <Label>Confidence Level</Label>
-                <span className="text-sm font-medium gradient-text">{confidence[0]}%</span>
+                <span className="text-2xl">{confidenceEmoji}</span>
               </div>
-              <Slider
-                value={confidence}
-                onValueChange={setConfidence}
-                max={100}
-                step={5}
-                className="py-2"
-              />
+              <div className="flex items-center gap-4">
+                <Slider
+                  value={confidence}
+                  onValueChange={setConfidence}
+                  max={100}
+                  step={5}
+                  className="flex-1"
+                />
+                <span className="text-lg font-medium gradient-text w-14 text-right">
+                  {confidence[0]}%
+                </span>
+              </div>
               <p className="text-xs text-muted-foreground">
                 How confident are you in this decision?
               </p>
@@ -325,29 +383,61 @@ const LogDecision = () => {
               />
             </div>
 
-            {/* Submit */}
-            <Button
-              type="submit"
-              variant="hero"
-              size="lg"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Sparkles className="w-5 h-5 animate-pulse" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Log Decision
-                </>
-              )}
-            </Button>
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                type="submit"
+                variant="hero"
+                size="lg"
+                className="flex-1"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Log Decision
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                onClick={() => setShowSaveTemplateModal(true)}
+                disabled={!title && !choice}
+              >
+                <Bookmark className="w-5 h-5" />
+                Save as Template
+              </Button>
+            </div>
           </form>
         </div>
       </div>
+
+      {/* Modals */}
+      <TemplateModal
+        open={showTemplateModal}
+        onOpenChange={setShowTemplateModal}
+        onSelect={applyTemplate}
+      />
+
+      <SaveTemplateModal
+        open={showSaveTemplateModal}
+        onOpenChange={setShowSaveTemplateModal}
+        templateData={{
+          titlePlaceholder: title,
+          choicePlaceholder: choice,
+          alternativesPlaceholder: alternatives.filter((a) => a.trim()).join("\n"),
+          category,
+          tags,
+          contextPlaceholder: context,
+        }}
+      />
     </DashboardLayout>
   );
 };

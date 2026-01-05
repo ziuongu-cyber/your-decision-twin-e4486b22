@@ -190,7 +190,7 @@ export async function clearInsights(): Promise<void> {
 }
 
 // Reminder management
-export type ReminderStatus = "pending" | "completed" | "snoozed";
+export type ReminderStatus = "pending" | "completed" | "snoozed" | "dismissed";
 
 export interface Reminder {
   id: string;

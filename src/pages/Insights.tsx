@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,13 +8,37 @@ import {
   Target,
   Sparkles,
   RefreshCw,
+  PieChart,
+  LineChart,
+  ScatterChart,
 } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
+import DashboardSkeleton from "@/components/common/DashboardSkeleton";
+import ErrorBoundary from "@/components/common/ErrorBoundary";
 import { getAllDecisions, Decision, calculateSuccessRate } from "@/lib/storage";
+
+// Lazy load chart components
+const DecisionsOverTimeChart = lazy(
+  () => import("@/components/insights/DecisionsOverTimeChart")
+);
+const SuccessRateByCategoryChart = lazy(
+  () => import("@/components/insights/SuccessRateByCategoryChart")
+);
+const ConfidenceVsOutcomeChart = lazy(
+  () => import("@/components/insights/ConfidenceVsOutcomeChart")
+);
+const DecisionBreakdownChart = lazy(
+  () => import("@/components/insights/DecisionBreakdownChart")
+);
+
+const ChartSkeleton = () => (
+  <div className="h-64 bg-secondary/50 rounded-lg animate-pulse" />
+);
 
 const Insights = () => {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeChart, setActiveChart] = useState<"time" | "category" | "confidence" | "breakdown">("time");
 
   useEffect(() => {
     const loadDecisions = async () => {
@@ -47,17 +71,12 @@ const Insights = () => {
   const successRate = calculateSuccessRate(decisions);
 
   const hasEnoughData = decisions.length >= 5;
+  const hasOutcomes = decisions.some((d) => d.outcomes.length > 0);
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="max-w-4xl mx-auto animate-pulse space-y-4">
-          <div className="glass-card rounded-2xl p-6 h-32" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="glass-card rounded-2xl p-6 h-48" />
-            <div className="glass-card rounded-2xl p-6 h-48" />
-          </div>
-        </div>
+        <DashboardSkeleton variant="insights" />
       </DashboardLayout>
     );
   }
@@ -120,9 +139,67 @@ const Insights = () => {
               </div>
             </div>
 
+            {/* Chart Selector */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={activeChart === "time" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveChart("time")}
+              >
+                <LineChart className="w-4 h-4 mr-1" />
+                Over Time
+              </Button>
+              <Button
+                variant={activeChart === "breakdown" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveChart("breakdown")}
+              >
+                <PieChart className="w-4 h-4 mr-1" />
+                Categories
+              </Button>
+              <Button
+                variant={activeChart === "category" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveChart("category")}
+                disabled={!hasOutcomes}
+              >
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Success by Category
+              </Button>
+              <Button
+                variant={activeChart === "confidence" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveChart("confidence")}
+                disabled={!hasOutcomes}
+              >
+                <ScatterChart className="w-4 h-4 mr-1" />
+                Confidence vs Outcome
+              </Button>
+            </div>
+
+            {/* Chart Display */}
+            <div className="glass-card rounded-2xl p-6">
+              <ErrorBoundary>
+                <Suspense fallback={<ChartSkeleton />}>
+                  {activeChart === "time" && (
+                    <DecisionsOverTimeChart decisions={decisions} />
+                  )}
+                  {activeChart === "breakdown" && (
+                    <DecisionBreakdownChart decisions={decisions} />
+                  )}
+                  {activeChart === "category" && (
+                    <SuccessRateByCategoryChart decisions={decisions} />
+                  )}
+                  {activeChart === "confidence" && (
+                    <ConfidenceVsOutcomeChart decisions={decisions} />
+                  )}
+                </Suspense>
+              </ErrorBoundary>
+            </div>
+
             {/* Category Breakdown */}
             <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-4">Decision Categories</h3>
+              <h3 className="text-lg font-semibold mb-4">Top Categories</h3>
               <div className="space-y-4">
                 {sortedCategories.map(([category, count]) => {
                   const percentage = Math.round((count / decisions.length) * 100);

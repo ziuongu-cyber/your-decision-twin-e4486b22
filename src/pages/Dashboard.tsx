@@ -13,20 +13,46 @@ import {
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TwinScore from "@/components/dashboard/TwinScore";
 import StatCard from "@/components/dashboard/StatCard";
+import DashboardSkeleton from "@/components/common/DashboardSkeleton";
+import DecisionDetailModal from "@/components/dashboard/DecisionDetailModal";
+import OutcomeModal from "@/components/dashboard/OutcomeModal";
+import PendingFollowupsWidget from "@/components/dashboard/PendingFollowupsWidget";
+import QuickAddFAB from "@/components/dashboard/QuickAddFAB";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import MilestoneCelebration from "@/components/celebrations/MilestoneCelebration";
+import { useReminderNotifications } from "@/hooks/useReminderNotifications";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { getAllDecisions, calculateSuccessRate, Decision } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
+
+const ONBOARDING_KEY = "decision_twin_onboarded";
+const MILESTONES = [5, 10, 25, 50, 100];
 
 const Dashboard = () => {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDecision, setSelectedDecision] = useState<Decision | null>(null);
+  const [outcomeDecision, setOutcomeDecision] = useState<Decision | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [milestone, setMilestone] = useState<{
+    title: string;
+    description: string;
+    type: "first" | "streak" | "count" | "score";
+    value?: number;
+  } | null>(null);
+
   const location = useLocation();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const { dueReminders, dismissReminder, snoozeReminder, refreshReminders } =
+    useReminderNotifications();
 
   // Load decisions function
   const loadDecisions = useCallback(async () => {
     try {
       const allDecisions = await getAllDecisions();
       setDecisions(allDecisions);
+      return allDecisions;
     } catch (error) {
       console.error("Failed to load decisions:", error);
       toast({
@@ -34,6 +60,7 @@ const Dashboard = () => {
         description: "Please refresh the page to try again.",
         variant: "destructive",
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -44,17 +71,53 @@ const Dashboard = () => {
     loadDecisions();
   }, [loadDecisions]);
 
-  // Show success message if redirected from LogDecision
+  // Check for onboarding
+  useEffect(() => {
+    const hasOnboarded = localStorage.getItem(ONBOARDING_KEY);
+    if (!hasOnboarded) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  // Show success message and check milestones
   useEffect(() => {
     if (location.state?.showSuccess) {
       toast({
         title: "Decision logged! 🎉",
         description: "Your digital twin is learning from your choices.",
       });
+      
+      // Check for milestones
+      const count = decisions.length;
+      if (count === 1) {
+        setMilestone({
+          title: "First Decision!",
+          description: "You've taken the first step in building your digital twin.",
+          type: "first",
+        });
+      } else if (MILESTONES.includes(count)) {
+        setMilestone({
+          title: `${count} Decisions!`,
+          description: `Amazing progress! You've logged ${count} decisions.`,
+          type: "count",
+          value: count,
+        });
+      }
+      
       // Clear the state
       window.history.replaceState({}, document.title);
     }
-  }, [location.state, toast]);
+  }, [location.state, toast, decisions.length]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem(ONBOARDING_KEY, "true");
+    setShowOnboarding(false);
+  };
+
+  const handleOutcomeSuccess = async () => {
+    await loadDecisions();
+    await refreshReminders();
+  };
 
   // Calculate stats
   const totalDecisions = decisions.length;
@@ -76,14 +139,7 @@ const Dashboard = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="max-w-6xl mx-auto space-y-6 md:space-y-8 animate-pulse">
-          <div className="glass-card rounded-2xl p-4 md:p-8 h-48" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="glass-card rounded-xl p-5 h-24" />
-            ))}
-          </div>
-        </div>
+        <DashboardSkeleton variant="dashboard" />
       </DashboardLayout>
     );
   }
@@ -128,6 +184,16 @@ const Dashboard = () => {
           />
         </div>
 
+        {/* Pending Follow-ups */}
+        {dueReminders.length > 0 && (
+          <PendingFollowupsWidget
+            reminders={dueReminders}
+            onSnooze={snoozeReminder}
+            onDismiss={dismissReminder}
+            onAddOutcome={(decision) => setOutcomeDecision(decision)}
+          />
+        )}
+
         {/* Recent Decisions Timeline */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -152,6 +218,7 @@ const Dashboard = () => {
                   key={decision.id}
                   className="glass-card rounded-xl p-4 hover:shadow-lg transition-all duration-300 cursor-pointer"
                   style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => setSelectedDecision(decision)}
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
@@ -164,6 +231,11 @@ const Dashboard = () => {
                         <span className="text-xs text-muted-foreground">
                           {new Date(decision.createdAt).toLocaleDateString()}
                         </span>
+                        {decision.outcomes.length > 0 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                            Has outcome
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">
@@ -211,6 +283,38 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Quick Add FAB (mobile) */}
+      {isMobile && totalDecisions > 0 && <QuickAddFAB />}
+
+      {/* Modals */}
+      <DecisionDetailModal
+        decision={selectedDecision}
+        open={!!selectedDecision}
+        onOpenChange={(open) => !open && setSelectedDecision(null)}
+        onAddOutcome={(decision) => {
+          setSelectedDecision(null);
+          setOutcomeDecision(decision);
+        }}
+      />
+
+      <OutcomeModal
+        decision={outcomeDecision}
+        open={!!outcomeDecision}
+        onOpenChange={(open) => !open && setOutcomeDecision(null)}
+        onSuccess={handleOutcomeSuccess}
+      />
+
+      <OnboardingModal
+        open={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
+
+      <MilestoneCelebration
+        open={!!milestone}
+        onClose={() => setMilestone(null)}
+        milestone={milestone}
+      />
     </DashboardLayout>
   );
 };

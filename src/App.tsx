@@ -13,28 +13,35 @@ import Settings from "./pages/Settings";
 import GuidedDecision from "./pages/GuidedDecision";
 import WeeklyReview from "./pages/WeeklyReview";
 import NotFound from "./pages/NotFound";
+import { SkipLink } from "./components/accessibility/SkipLink";
+import { LiveRegionProvider } from "./components/accessibility/LiveRegion";
+import { KeyboardShortcuts } from "./components/accessibility/KeyboardShortcuts";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/log-decision" element={<LogDecision />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/ask-twin" element={<AskTwin />} />
-          <Route path="/insights" element={<Insights />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/guided-decision" element={<GuidedDecision />} />
-          <Route path="/weekly-review" element={<WeeklyReview />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <LiveRegionProvider>
+        <SkipLink />
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <KeyboardShortcuts />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/log-decision" element={<LogDecision />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/ask-twin" element={<AskTwin />} />
+            <Route path="/insights" element={<Insights />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/guided-decision" element={<GuidedDecision />} />
+            <Route path="/weekly-review" element={<WeeklyReview />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </LiveRegionProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

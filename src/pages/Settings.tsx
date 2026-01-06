@@ -55,6 +55,7 @@ import { getSettings, saveSettings, AppSettings, getDefaultSettings } from "@/li
 import { getAllDecisions } from "@/lib/storage";
 import { getSharingSettings, saveSharingSettings, SharingSettings, getSharedDecisions, cleanupExpiredShares } from "@/lib/sharing";
 import { IntegrationsSection } from "@/components/integrations/IntegrationsSection";
+import { Language, SUPPORTED_LANGUAGES } from "@/lib/i18n";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -727,6 +728,35 @@ const Settings = () => {
                         <AreaChart className="w-4 h-4" /> Area Chart
                       </span>
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Language</Label>
+                  <p className="text-sm text-muted-foreground">Select your preferred language</p>
+                </div>
+                <Select
+                  value={settings.language}
+                  onValueChange={(v) => updateSetting("language", v as Language)}
+                >
+                  <SelectTrigger className="w-40" aria-label="Select language">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        <span className="flex items-center gap-2">
+                          {lang.nativeName}
+                          {lang.code !== "en" && (
+                            <span className="text-xs text-muted-foreground">(Coming soon)</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -1,3 +1,5 @@
+import { Language, setLanguage as setI18nLanguage, getLanguage } from "./i18n";
+
 export interface AppSettings {
   // Twin Personality
   tone: "encouraging" | "honest" | "analytical" | "friendly";
@@ -18,6 +20,9 @@ export interface AppSettings {
   theme: "light" | "dark" | "auto";
   compactView: boolean;
   defaultChartType: "bar" | "line" | "pie" | "area";
+
+  // Localization
+  language: Language;
 
   // Advanced AI Features
   advancedAI: boolean;
@@ -40,6 +45,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   compactView: false,
   defaultChartType: "bar",
+  language: getLanguage(),
   advancedAI: true,
   showImpactPredictor: true,
   showAlternativeSuggester: true,
@@ -96,6 +102,11 @@ export async function saveSettings(settings: Partial<AppSettings>): Promise<AppS
 
   // Apply theme immediately
   applyTheme(updated.theme);
+
+  // Apply language immediately
+  if (settings.language) {
+    setI18nLanguage(settings.language);
+  }
 
   return updated;
 }

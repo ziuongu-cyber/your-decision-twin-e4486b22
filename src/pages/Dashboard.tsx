@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Brain,
   Compass,
+  BookOpen,
 } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TwinScore from "@/components/dashboard/TwinScore";
@@ -198,6 +199,12 @@ const Dashboard = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-3">
+          <Link to="/weekly-review">
+            <Button variant="outline" className="gap-2">
+              <BookOpen className="w-4 h-4" />
+              This Week's Review
+            </Button>
+          </Link>
           <Link to="/guided-decision">
             <Button variant="outline" className="gap-2">
               <Compass className="w-4 h-4" />

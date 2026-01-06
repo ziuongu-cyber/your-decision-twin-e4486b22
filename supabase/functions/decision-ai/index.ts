@@ -27,13 +27,21 @@ interface GuidedAnswer {
   answer: string;
 }
 
+interface WeekSummary {
+  decisionCount: number;
+  mostActiveDay: string | null;
+  primaryCategory: string | null;
+  avgConfidence: number;
+}
+
 interface RequestBody {
-  type: 'predict' | 'alternatives' | 'biases' | 'replay' | 'chat' | 'guided-questions' | 'guided-options' | 'guided-recommendation';
+  type: 'predict' | 'alternatives' | 'biases' | 'replay' | 'chat' | 'guided-questions' | 'guided-options' | 'guided-recommendation' | 'weekly-reflection';
   currentDecision?: Partial<Decision>;
   decisions: Decision[];
   question?: string;
   guidedAnswers?: GuidedAnswer[];
   optionRatings?: Array<{ option: string; rating: number }>;
+  weekSummary?: WeekSummary;
   settings?: {
     tone: string;
     adviceStyle: string;
@@ -71,7 +79,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { type, currentDecision, decisions, question, guidedAnswers, optionRatings, settings }: RequestBody = await req.json();
+    const { type, currentDecision, decisions, question, guidedAnswers, optionRatings, weekSummary, settings }: RequestBody = await req.json();
 
     console.log(`Processing ${type} request with ${decisions.length} decisions`);
 
@@ -274,6 +282,32 @@ Provide a comprehensive recommendation that includes:
 5. **Confidence Level** - Your confidence in this recommendation (high/medium/low) and why
 
 Be direct but supportive. Reference specific things they shared in their answers.`;
+        break;
+
+      case 'weekly-reflection':
+        systemPrompt = `You are a thoughtful reflection coach helping someone review their week of decisions. ${tonePrompt}
+
+Generate 3 personalized reflection questions based on their week's decisions and patterns. Questions should:
+- Be specific to what they actually did this week
+- Encourage deeper self-awareness
+- Be constructive and growth-oriented
+
+IMPORTANT: Respond ONLY with a valid JSON array of strings (the questions). No markdown, no explanation, just the JSON.`;
+
+        userPrompt = `This week's summary:
+- Decisions made: ${weekSummary?.decisionCount || 0}
+- Most active day: ${weekSummary?.mostActiveDay || 'Unknown'}
+- Primary focus area: ${weekSummary?.primaryCategory || 'Various'}
+- Average confidence: ${weekSummary?.avgConfidence || 50}%
+
+This week's decisions:
+${decisionContext}
+
+Generate 3 thoughtful, personalized reflection questions about their week. Make them specific to the decisions they made.
+
+Respond with a JSON array like: ["Question 1?", "Question 2?", "Question 3?"]
+
+Return ONLY the JSON array, no other text.`;
         break;
 
       default:

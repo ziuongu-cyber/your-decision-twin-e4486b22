@@ -98,6 +98,19 @@ const LogDecision = () => {
     }
   }, [location.state]);
 
+  // Load prefill from Guided Mode
+  useEffect(() => {
+    if (location.state?.prefill) {
+      const prefill = location.state.prefill;
+      setTitle(prefill.title || "");
+      setChoice(prefill.choice || "");
+      setAlternatives(prefill.alternatives?.length ? [...prefill.alternatives, ""] : [""]);
+      setContext(prefill.context || "");
+      setConfidence([prefill.confidence || 70]);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Auto-save draft
   useEffect(() => {
     if (debouncedTitle || debouncedChoice || debouncedContext) {

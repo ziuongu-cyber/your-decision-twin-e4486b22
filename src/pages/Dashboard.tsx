@@ -9,6 +9,8 @@ import {
   FileText,
   Sparkles,
   CheckCircle,
+  Brain,
+  Compass,
 } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TwinScore from "@/components/dashboard/TwinScore";
@@ -194,6 +196,22 @@ const Dashboard = () => {
           />
         )}
 
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <Link to="/guided-decision">
+            <Button variant="outline" className="gap-2">
+              <Compass className="w-4 h-4" />
+              Help Me Decide
+            </Button>
+          </Link>
+          <Link to="/ask-twin">
+            <Button variant="outline" className="gap-2">
+              <Brain className="w-4 h-4" />
+              Ask Your Twin
+            </Button>
+          </Link>
+        </div>
+
         {/* Recent Decisions Timeline */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -258,12 +276,20 @@ const Dashboard = () => {
               <p className="text-muted-foreground max-w-sm mx-auto mb-6">
                 Your journey starts with a single decision. Log your first one and watch your digital twin come to life!
               </p>
-              <Link to="/log-decision">
-                <Button variant="hero" size="lg">
-                  <Plus className="w-5 h-5" />
-                  Log Your First Decision
-                </Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/log-decision">
+                  <Button variant="hero" size="lg">
+                    <Plus className="w-5 h-5" />
+                    Log Your First Decision
+                  </Button>
+                </Link>
+                <Link to="/guided-decision">
+                  <Button variant="outline" size="lg">
+                    <Compass className="w-5 h-5" />
+                    Help Me Decide
+                  </Button>
+                </Link>
+              </div>
             </div>
           )}
         </div>

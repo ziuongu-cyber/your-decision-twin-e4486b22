@@ -10,6 +10,7 @@ import History from "./pages/History";
 import AskTwin from "./pages/AskTwin";
 import Insights from "./pages/Insights";
 import Settings from "./pages/Settings";
+import GuidedDecision from "./pages/GuidedDecision";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/ask-twin" element={<AskTwin />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/guided-decision" element={<GuidedDecision />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

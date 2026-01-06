@@ -35,13 +35,14 @@ interface WeekSummary {
 }
 
 interface RequestBody {
-  type: 'predict' | 'alternatives' | 'biases' | 'replay' | 'chat' | 'guided-questions' | 'guided-options' | 'guided-recommendation' | 'weekly-reflection';
+  type: 'predict' | 'alternatives' | 'biases' | 'replay' | 'chat' | 'guided-questions' | 'guided-options' | 'guided-recommendation' | 'weekly-reflection' | 'parse-text';
   currentDecision?: Partial<Decision>;
   decisions: Decision[];
   question?: string;
   guidedAnswers?: GuidedAnswer[];
   optionRatings?: Array<{ option: string; rating: number }>;
   weekSummary?: WeekSummary;
+  textContent?: string;
   settings?: {
     tone: string;
     adviceStyle: string;
@@ -79,7 +80,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { type, currentDecision, decisions, question, guidedAnswers, optionRatings, weekSummary, settings }: RequestBody = await req.json();
+    const { type, currentDecision, decisions, question, guidedAnswers, optionRatings, weekSummary, textContent, settings }: RequestBody = await req.json();
 
     console.log(`Processing ${type} request with ${decisions.length} decisions`);
 
@@ -306,6 +307,33 @@ ${decisionContext}
 Generate 3 thoughtful, personalized reflection questions about their week. Make them specific to the decisions they made.
 
 Respond with a JSON array like: ["Question 1?", "Question 2?", "Question 3?"]
+
+Return ONLY the JSON array, no other text.`;
+        break;
+
+      case 'parse-text':
+        systemPrompt = `You are an expert at analyzing text to extract decisions. Identify any decisions mentioned - choices made, options considered, or plans decided upon.
+
+IMPORTANT: Respond ONLY with a valid JSON array. No markdown, no explanation, just the JSON.`;
+
+        userPrompt = `Extract decisions from this text. For each decision found, identify:
+- title: Brief summary (max 50 chars)
+- choice: What was decided
+- category: One of: Career, Finance, Health, Relationships, Personal, Education, Other
+- confidence: Estimated confidence (1-100)
+- alternatives: Array of other options considered
+- context: Any relevant context
+- tags: Relevant tags
+
+Text to analyze:
+"""
+${textContent || ''}
+"""
+
+Respond with a JSON array like:
+[{"title": "...", "choice": "...", "category": "...", "confidence": 70, "alternatives": [], "context": "...", "tags": []}]
+
+If no decisions found, return an empty array: []
 
 Return ONLY the JSON array, no other text.`;
         break;

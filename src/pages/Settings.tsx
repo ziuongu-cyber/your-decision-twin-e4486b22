@@ -54,6 +54,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, AppSettings, getDefaultSettings } from "@/lib/settings";
 import { getAllDecisions } from "@/lib/storage";
 import { getSharingSettings, saveSharingSettings, SharingSettings, getSharedDecisions, cleanupExpiredShares } from "@/lib/sharing";
+import { IntegrationsSection } from "@/components/integrations/IntegrationsSection";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -731,6 +732,9 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Integrations */}
+          <IntegrationsSection />
 
           {/* About */}
           <Card>

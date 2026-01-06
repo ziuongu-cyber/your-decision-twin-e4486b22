@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -8,28 +9,31 @@ const Footer = () => {
           {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+              <Sparkles className="w-4 h-4 text-white" aria-hidden="true" />
             </div>
             <span className="font-semibold text-foreground">Digital Twin</span>
           </div>
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © 2026 Digital Twin. All rights reserved.
+            © {new Date().getFullYear()} Digital Twin. All rights reserved.
           </p>
 
           {/* Links */}
-          <div className="flex items-center gap-6">
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <nav aria-label="Footer navigation" className="flex items-center gap-6">
+            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Terms
-            </a>
-            <a href="#" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            </Link>
+            <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Contact
-            </a>
-          </div>
+            </Link>
+            <Link to="/help" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Help
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>

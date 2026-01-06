@@ -173,10 +173,39 @@ const LogDecision = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!title.trim() || !choice.trim() || !category) {
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+    
+    // Validate required fields
+    const trimmedTitle = title.trim();
+    const trimmedChoice = choice.trim();
+    
+    if (!trimmedTitle || !trimmedChoice || !category) {
       toast({
         title: "Missing required fields",
         description: "Please fill in the title, your choice, and category.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate title length (max 500 chars)
+    if (trimmedTitle.length > 500) {
+      toast({
+        title: "Title too long",
+        description: "Please keep the title under 500 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate choice length (max 2000 chars)
+    if (trimmedChoice.length > 2000) {
+      toast({
+        title: "Choice description too long",
+        description: "Please keep the choice under 2000 characters.",
         variant: "destructive",
       });
       return;
@@ -187,13 +216,13 @@ const LogDecision = () => {
     try {
       const decision: Decision = {
         id: Date.now().toString(),
-        title: title.trim(),
-        choice: choice.trim(),
-        alternatives: alternatives.filter((a) => a.trim()),
+        title: trimmedTitle.slice(0, 500),
+        choice: trimmedChoice.slice(0, 2000),
+        alternatives: alternatives.filter((a) => a.trim()).map(a => a.trim().slice(0, 500)),
         category,
         confidence: confidence[0],
-        tags,
-        context: context.trim(),
+        tags: tags.slice(0, 20).map(t => t.slice(0, 50)),
+        context: context.trim().slice(0, 5000),
         createdAt: new Date().toISOString(),
         outcomes: [],
       };
@@ -209,10 +238,15 @@ const LogDecision = () => {
 
       navigate("/dashboard", { state: { showSuccess: true } });
     } catch (error) {
-      console.error("Failed to save decision:", error);
+      // Track error but don't log to console in production
+      if (import.meta.env.DEV) {
+        console.error("Failed to save decision:", error);
+      }
       toast({
         title: "Failed to save decision",
-        description: "Please try again.",
+        description: error instanceof Error && error.message.includes("quota") 
+          ? "Storage is full. Please delete some old decisions." 
+          : "Please try again.",
         variant: "destructive",
       });
     } finally {

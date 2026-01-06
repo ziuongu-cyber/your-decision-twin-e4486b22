@@ -21,25 +21,36 @@ const BottomNavigation = () => {
   const currentPath = location.pathname;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border md:hidden safe-area-bottom">
-      <div className="flex items-center justify-around h-16">
+    <nav 
+      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border md:hidden safe-area-bottom"
+      aria-label="Mobile navigation"
+      role="navigation"
+    >
+      <ul className="flex items-center justify-around h-16" role="menubar">
         {navItems.map((item) => {
           const isActive = currentPath === item.url;
           return (
-            <Link
-              key={item.title}
-              to={item.url}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-[64px] touch-target",
-                isActive ? "text-primary" : "text-muted-foreground"
-              )}
-            >
-              <item.icon className={cn("w-5 h-5", isActive && "text-primary")} />
-              <span className="text-[10px] font-medium">{item.title}</span>
-            </Link>
+            <li key={item.title} role="none">
+              <Link
+                to={item.url}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-[64px] touch-target px-3 py-2",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.title}
+                role="menuitem"
+              >
+                <item.icon 
+                  className={cn("w-5 h-5", isActive && "text-primary")} 
+                  aria-hidden="true"
+                />
+                <span className="text-[10px] font-medium">{item.title}</span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 };

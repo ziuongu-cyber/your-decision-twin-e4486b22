@@ -342,10 +342,10 @@ const WeeklyReview = () => {
                 <Calendar className="w-5 h-5 text-primary" />
                 <h1 className="text-2xl font-bold">Weekly Review</h1>
               </div>
-              <p className="text-muted-foreground mt-1">
-                {format(currentWeekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}
-                {isCurrentWeek && <Badge variant="secondary" className="ml-2">Current Week</Badge>}
-              </p>
+              <div className="text-muted-foreground mt-1 flex items-center justify-center gap-2">
+                <span>{format(currentWeekStart, "MMM d")} - {format(weekEnd, "MMM d, yyyy")}</span>
+                {isCurrentWeek && <Badge variant="secondary">Current Week</Badge>}
+              </div>
             </div>
             <Button variant="ghost" size="icon" onClick={goToNextWeek} disabled={isCurrentWeek}>
               <ChevronRight className="w-5 h-5" />

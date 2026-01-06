@@ -13,17 +13,25 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         {/* Desktop sidebar - hidden on mobile */}
-        <div className="hidden md:block">
+        <nav className="hidden md:block" aria-label="Main navigation">
           <DashboardSidebar />
-        </div>
+        </nav>
         <div className="flex-1 flex flex-col min-w-0">
           <DashboardHeader />
-          <main className="flex-1 p-4 md:p-6 mesh-gradient overflow-auto pb-20 md:pb-6">
+          <main 
+            id="main-content" 
+            className="flex-1 p-4 md:p-6 mesh-gradient overflow-auto pb-20 md:pb-6"
+            tabIndex={-1}
+            role="main"
+            aria-label="Main content"
+          >
             {children}
           </main>
         </div>
         {/* Mobile bottom navigation */}
-        <BottomNavigation />
+        <nav aria-label="Mobile navigation">
+          <BottomNavigation />
+        </nav>
       </div>
     </SidebarProvider>
   );

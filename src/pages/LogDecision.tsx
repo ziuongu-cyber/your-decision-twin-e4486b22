@@ -17,11 +17,13 @@ import { PenLine, Plus, X, Save, Sparkles, FileText, Bookmark } from "lucide-rea
 import DashboardLayout from "@/layouts/DashboardLayout";
 import TemplateModal from "@/components/templates/TemplateModal";
 import SaveTemplateModal from "@/components/templates/SaveTemplateModal";
-import { saveDecision, createRemindersForDecision, Decision, saveDraft, getDraft, clearDraft } from "@/lib/storage";
+import DecisionImpactPredictor from "@/components/ai/DecisionImpactPredictor";
+import AlternativeSuggester from "@/components/ai/AlternativeSuggester";
+import { saveDecision, createRemindersForDecision, Decision, saveDraft, getDraft, clearDraft, getAllDecisions } from "@/lib/storage";
 import { DecisionTemplate, DEFAULT_TEMPLATES } from "@/lib/templates";
+import { getSettings, AppSettings } from "@/lib/settings";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
-
 const CATEGORIES = [
   "Career",
   "Finance",
@@ -53,16 +55,27 @@ const LogDecision = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<DecisionTemplate | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [allDecisions, setAllDecisions] = useState<Decision[]>([]);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [showPredictor, setShowPredictor] = useState(false);
 
   // Debounced values for auto-save
   const debouncedTitle = useDebounce(title, 1000);
   const debouncedChoice = useDebounce(choice, 1000);
   const debouncedContext = useDebounce(context, 1000);
 
-  // Load draft on mount
+  // Load draft and decisions on mount
   useEffect(() => {
-    const loadDraft = async () => {
-      const draft = await getDraft();
+    const loadData = async () => {
+      const [draft, decisions, loadedSettings] = await Promise.all([
+        getDraft(),
+        getAllDecisions(),
+        getSettings(),
+      ]);
+      
+      setAllDecisions(decisions);
+      setSettings(loadedSettings);
+      
       if (draft && !location.state?.template) {
         setTitle(draft.title || "");
         setChoice(draft.choice || "");
@@ -73,7 +86,7 @@ const LogDecision = () => {
         setContext(draft.context || "");
       }
     };
-    loadDraft();
+    loadData();
   }, [location.state]);
 
   // Load template from navigation state
@@ -288,15 +301,31 @@ const LogDecision = () => {
                   )}
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddAlternative}
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Add Alternative
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddAlternative}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Alternative
+                </Button>
+                {settings?.advancedAI && settings?.showAlternativeSuggester && (
+                  <AlternativeSuggester
+                    currentDecision={{
+                      title,
+                      choice,
+                      alternatives: alternatives.filter(a => a.trim()),
+                      category,
+                      context,
+                      confidence: confidence[0],
+                    }}
+                    decisions={allDecisions}
+                    onAddAlternative={(alt) => setAlternatives([...alternatives.filter(a => a.trim()), alt, ""])}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Category */}
@@ -382,6 +411,22 @@ const LogDecision = () => {
                 className="bg-secondary min-h-[100px]"
               />
             </div>
+
+            {/* AI Impact Predictor */}
+            {settings?.advancedAI && settings?.showImpactPredictor && title && choice && category && (
+              <DecisionImpactPredictor
+                currentDecision={{
+                  title,
+                  choice,
+                  alternatives: alternatives.filter(a => a.trim()),
+                  category,
+                  context,
+                  confidence: confidence[0],
+                }}
+                decisions={allDecisions}
+                onClose={() => setShowPredictor(false)}
+              />
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-3">

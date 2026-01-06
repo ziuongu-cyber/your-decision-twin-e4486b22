@@ -11,6 +11,7 @@ import AskTwin from "./pages/AskTwin";
 import Insights from "./pages/Insights";
 import Settings from "./pages/Settings";
 import GuidedDecision from "./pages/GuidedDecision";
+import WeeklyReview from "./pages/WeeklyReview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/insights" element={<Insights />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/guided-decision" element={<GuidedDecision />} />
+          <Route path="/weekly-review" element={<WeeklyReview />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

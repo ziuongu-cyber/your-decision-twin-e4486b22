@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { getAllDecisions, calculateSuccessRate, Decision } from "@/lib/storage";
+import { getSettings, AppSettings } from "@/lib/settings";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -39,22 +40,27 @@ const AskTwin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [twinScore, setTwinScore] = useState(0);
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const location = useLocation();
 
-  // Load decisions on mount
+  // Load decisions and settings on mount
   useEffect(() => {
-    const loadDecisions = async () => {
+    const loadData = async () => {
       try {
-        const allDecisions = await getAllDecisions();
+        const [allDecisions, loadedSettings] = await Promise.all([
+          getAllDecisions(),
+          getSettings(),
+        ]);
         setDecisions(allDecisions);
+        setSettings(loadedSettings);
         setTwinScore(Math.min(Math.round((allDecisions.length / 50) * 100), 100));
       } catch (error) {
-        console.error("Failed to load decisions:", error);
+        console.error("Failed to load data:", error);
       }
     };
-    loadDecisions();
+    loadData();
   }, []);
 
   // Handle prefilled question from navigation state
@@ -69,6 +75,45 @@ const AskTwin = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const generateAIResponse = async (question: string): Promise<string> => {
+    // Check if advanced AI is enabled
+    if (!settings?.advancedAI) {
+      return generateLocalResponse(question);
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/decision-ai`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          type: "chat",
+          decisions,
+          question,
+          settings: {
+            tone: settings?.tone || "encouraging",
+            adviceStyle: settings?.adviceStyle || "balanced",
+            showConfidenceScores: settings?.showConfidenceScores !== false,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to get response");
+      }
+
+      const data = await response.json();
+      return data.content;
+    } catch (error) {
+      console.error("AI response error:", error);
+      // Fallback to local response
+      return generateLocalResponse(question);
+    }
+  };
 
   const generateLocalResponse = (question: string): string => {
     // Simple local AI response based on decisions
@@ -111,17 +156,26 @@ Would you like me to help you think through this decision step by step?`;
     setInput("");
     setIsLoading(true);
 
-    // Simulate typing delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const responseContent = await generateAIResponse(messageText);
 
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: generateLocalResponse(messageText),
-    };
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: responseContent,
+      };
 
-    setMessages((prev) => [...prev, assistantMessage]);
-    setIsLoading(false);
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error generating response:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFeedback = (messageId: string, feedback: "up" | "down") => {

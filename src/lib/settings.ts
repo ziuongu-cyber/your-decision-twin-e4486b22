@@ -18,6 +18,13 @@ export interface AppSettings {
   theme: "light" | "dark" | "auto";
   compactView: boolean;
   defaultChartType: "bar" | "line" | "pie" | "area";
+
+  // Advanced AI Features
+  advancedAI: boolean;
+  showImpactPredictor: boolean;
+  showAlternativeSuggester: boolean;
+  showBiasDetector: boolean;
+  showDecisionReplay: boolean;
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -33,6 +40,11 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   compactView: false,
   defaultChartType: "bar",
+  advancedAI: true,
+  showImpactPredictor: true,
+  showAlternativeSuggester: true,
+  showBiasDetector: true,
+  showDecisionReplay: true,
 };
 
 const SETTINGS_KEY = "settings";

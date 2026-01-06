@@ -15,7 +15,10 @@ import {
 import DashboardLayout from "@/layouts/DashboardLayout";
 import DashboardSkeleton from "@/components/common/DashboardSkeleton";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import BiasDetector from "@/components/ai/BiasDetector";
+import DecisionReplay from "@/components/ai/DecisionReplay";
 import { getAllDecisions, Decision, calculateSuccessRate } from "@/lib/storage";
+import { getSettings, AppSettings } from "@/lib/settings";
 
 // Lazy load chart components
 const DecisionsOverTimeChart = lazy(
@@ -39,19 +42,24 @@ const Insights = () => {
   const [decisions, setDecisions] = useState<Decision[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeChart, setActiveChart] = useState<"time" | "category" | "confidence" | "breakdown">("time");
+  const [settings, setSettings] = useState<AppSettings | null>(null);
 
   useEffect(() => {
-    const loadDecisions = async () => {
+    const loadData = async () => {
       try {
-        const allDecisions = await getAllDecisions();
+        const [allDecisions, loadedSettings] = await Promise.all([
+          getAllDecisions(),
+          getSettings(),
+        ]);
         setDecisions(allDecisions);
+        setSettings(loadedSettings);
       } catch (error) {
         console.error("Failed to load decisions:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    loadDecisions();
+    loadData();
   }, []);
 
   // Calculate insights
@@ -258,6 +266,25 @@ const Insights = () => {
                 </ul>
               </div>
             </div>
+
+            {/* AI-Powered Bias Detector */}
+            {settings?.advancedAI && settings?.showBiasDetector && (
+              <BiasDetector className="mt-6" />
+            )}
+
+            {/* Decision Replay */}
+            {settings?.advancedAI && settings?.showDecisionReplay && decisions.length >= 3 && (
+              <div className="glass-card rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  "What If?" Simulator
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Explore alternate paths and learn from hypothetical scenarios based on your decision history.
+                </p>
+                <DecisionReplay decisions={decisions} />
+              </div>
+            )}
           </>
         )}
       </div>

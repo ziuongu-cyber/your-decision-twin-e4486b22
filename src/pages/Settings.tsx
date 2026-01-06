@@ -45,6 +45,10 @@ import {
   Share2,
   Link,
   FileText,
+  Lightbulb,
+  TrendingUp,
+  Rewind,
+  Zap,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getSettings, saveSettings, AppSettings, getDefaultSettings } from "@/lib/settings";
@@ -263,6 +267,98 @@ const Settings = () => {
                   onCheckedChange={(v) => updateSetting("showConfidenceScores", v)}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Advanced AI Features */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5 text-primary" />
+                Advanced AI Features
+              </CardTitle>
+              <CardDescription>Enable AI-powered decision analysis and predictions</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Enable Advanced AI
+                  </Label>
+                  <p className="text-sm text-muted-foreground">Use AI to analyze your decisions and provide insights</p>
+                </div>
+                <Switch
+                  checked={settings.advancedAI}
+                  onCheckedChange={(v) => updateSetting("advancedAI", v)}
+                />
+              </div>
+
+              {settings.advancedAI && (
+                <>
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <p className="text-sm font-medium">Choose which AI features to enable:</p>
+                    
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Impact Predictor
+                        </Label>
+                        <p className="text-xs text-muted-foreground">Predict outcomes when logging decisions</p>
+                      </div>
+                      <Switch
+                        checked={settings.showImpactPredictor}
+                        onCheckedChange={(v) => updateSetting("showImpactPredictor", v)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4" />
+                          Alternative Suggester
+                        </Label>
+                        <p className="text-xs text-muted-foreground">Get AI-suggested alternatives for decisions</p>
+                      </div>
+                      <Switch
+                        checked={settings.showAlternativeSuggester}
+                        onCheckedChange={(v) => updateSetting("showAlternativeSuggester", v)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Eye className="w-4 h-4" />
+                          Bias Detector
+                        </Label>
+                        <p className="text-xs text-muted-foreground">Analyze patterns and blind spots in your decisions</p>
+                      </div>
+                      <Switch
+                        checked={settings.showBiasDetector}
+                        onCheckedChange={(v) => updateSetting("showBiasDetector", v)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          <Rewind className="w-4 h-4" />
+                          Decision Replay
+                        </Label>
+                        <p className="text-xs text-muted-foreground">"What if?" simulator for past decisions</p>
+                      </div>
+                      <Switch
+                        checked={settings.showDecisionReplay}
+                        onCheckedChange={(v) => updateSetting("showDecisionReplay", v)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
